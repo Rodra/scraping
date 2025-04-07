@@ -1,12 +1,10 @@
 import logging
-import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from bs4 import BeautifulSoup
-from requests.exceptions import RequestException
 
 from .auth import QuoteScraperAuth
-from .utils import handle_request_exception
+from .utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
@@ -27,32 +25,92 @@ class QuoteParser:
         Returns:
             BeautifulSoup object containing the page content.
         """
-        retry_count = 0
-        max_retries = 3
+        def perform_fetch():
+            # Check if the session is authenticated
+            if not self.auth.is_authenticated():
+                raise Exception("Session is not authenticated. Please log in first.")
 
-        while retry_count <= max_retries:
-            try:
-                # Check if the session is authenticated
-                if not self.auth.is_authenticated():
-                    raise Exception(
-                        "Session is not authenticated. Please log in first."
-                    )
+            # Fetch the page content
+            response = self.auth.session.get(url)
+            response.raise_for_status()
+            return BeautifulSoup(response.text, "html.parser")
 
-                # Fetch the page content
-                response = self.auth.session.get(url)
-                response.raise_for_status()
-                return BeautifulSoup(response.text, "html.parser")
+        return retry_with_backoff(perform_fetch, max_retries=3, action_name="Fetch Page", url=url)
 
-            except RequestException as e:
-                # Handle the exception and determine if a retry is needed
-                delay = handle_request_exception(e, retry_count, max_retries)
-                if delay is None:
-                    raise Exception(
-                        f"Failed to fetch page {url} after {max_retries} retries."
-                    ) from e
+    def get_quote_text(self, quote_element: BeautifulSoup) -> str:
+        """
+        Extract the text of the quote.
 
-                retry_count += 1
-                time.sleep(delay)
+        Args:
+            quote_element: BeautifulSoup element containing quote data.
+
+        Returns:
+            The text of the quote.
+        """
+        text_element = quote_element.find("span", class_="text")
+        return text_element.get_text(strip=True) if text_element else ""
+
+    def get_quote_author(self, quote_element: BeautifulSoup) -> str:
+        """
+        Extract the author of the quote.
+
+        Args:
+            quote_element: BeautifulSoup element containing quote data.
+
+        Returns:
+            The author of the quote.
+        """
+        author_element = quote_element.find("small", class_="author")
+        return author_element.get_text(strip=True) if author_element else ""
+
+    def get_quote_tags(self, quote_element: BeautifulSoup) -> List[str]:
+        """
+        Extract the tags associated with the quote.
+
+        Args:
+            quote_element: BeautifulSoup element containing quote data.
+
+        Returns:
+            A list of tags.
+        """
+        tag_elements = quote_element.find_all("a", class_="tag")
+        return [tag.get_text(strip=True) for tag in tag_elements]
+
+    def get_author_url(self, quote_element: BeautifulSoup) -> str:
+        """
+        Extract the URL of the author's "about" page.
+
+        Args:
+            quote_element: BeautifulSoup element containing quote data.
+
+        Returns:
+            The URL of the author's "about" page.
+        """
+        author_element = quote_element.find("small", class_="author")
+        if not author_element:
+            return None
+
+        author_about_link = author_element.find_next_sibling("a", href=True)
+        if not author_about_link:
+            return None
+
+        return f"{self.auth.base_url}{author_about_link['href']}"
+
+    def get_goodreads_link(self, quote_element: BeautifulSoup) -> str:
+        """
+        Extract the Goodreads link for the author, if available.
+
+        Args:
+            quote_element: BeautifulSoup element containing quote data.
+
+        Returns:
+            The Goodreads link for the author.
+        """
+        author_link = quote_element.find("a", href=True)
+        if not author_link or "goodreads.com" not in author_link["href"]:
+            return None
+
+        return author_link["href"]
 
     def parse_quote(self, quote_element: BeautifulSoup) -> Dict[str, Any]:
         """
@@ -65,34 +123,30 @@ class QuoteParser:
             Dict containing structured quote data
         """
         try:
-            text = quote_element.find("span", class_="text")
-            author = quote_element.find("small", class_="author")
+            text = self.get_quote_text(quote_element)
+            author = self.get_quote_author(quote_element)
+            tags = self.get_quote_tags(quote_element)
+            author_url = self.get_author_url(quote_element)
+            goodreads_link = self.get_goodreads_link(quote_element)
 
-            # In real-world applications, we would want to implement a more robust data check.
-            if not text or not author:
-                return {}
-
-            tags = [tag.get_text() for tag in quote_element.find_all("a", class_="tag")]
-
-            # Extract goodreads.com reference if available
-            goodreads_link = None
-            author_link = quote_element.find("a", href=True)
-            if author_link and "goodreads.com" in author_link["href"]:
-                goodreads_link = author_link["href"]
+            # Ensure required fields are present
+            if not text or not author or not author_url:
+                raise ValueError("Missing required fields in quote element")
 
             return {
-                "text": text.get_text(),
-                "author": author.get_text(),
+                "text": text,
+                "author": author,
+                "author_url": author_url,
                 "tags": tags,
                 "goodreads_link": goodreads_link,
             }
         except Exception as e:
-            # In real-world applications, we would want to have better error
+            # In a real-world application, we would want to have better error
             # handling when the structure of the target website changes
             logger.error(f"Error parsing quote element: {e}")
             return {}
 
-    def parse_page(self, page_url: str) -> List[Dict[str, Any]]:
+    def parse_page(self, page_url: str) -> Tuple[List[Dict[str, Any]], str]:
         """
         Parse all quotes from a given page.
 
@@ -100,7 +154,7 @@ class QuoteParser:
             page_url: URL of the page to parse
 
         Returns:
-            List of parsed quote dictionaries
+            List of parsed quote dictionaries and the next page to parse
         """
         try:
             # Fetch the page content using the helper method
@@ -113,33 +167,19 @@ class QuoteParser:
             ]
 
             # Filter out empty dictionaries (invalid quotes)
-            return [quote for quote in quotes if quote]
+            valid_quotes = [quote for quote in quotes if quote]
+
+            # Find the "Next" button and extract its URL
+            next_page_link = soup.find("li", class_="next")
+            next_page_url = (
+                f"{self.auth.base_url}{next_page_link.find('a')['href']}"
+                if next_page_link
+                else None
+            )
+
+            # Return the parsed quotes and the next page URL
+            return valid_quotes, next_page_url
         except Exception as e:
             # Log the error and return an empty list
             logger.error(f"Error parsing page {page_url}: {e}")
             return []
-
-    def get_next_page_url(self, current_page_url: str) -> str:
-        """
-        Get the URL of the next page if it exists.
-
-        Args:
-            current_page_url: URL of the current page
-
-        Returns:
-            URL of the next page or empty string if no next page
-        """
-        try:
-            # Fetch the page content using the helper method
-            soup = self.fetch_page(current_page_url)
-
-            # Find the "Next" button and extract its URL
-            next_page_link = soup.find("li", class_="next")
-            if next_page_link:
-                next_page_url = next_page_link.find("a")["href"]
-                return f"{self.auth.base_url}{next_page_url}"
-            return None
-        except Exception as e:
-            # Log the error and return an empty string
-            logger.error(f"Error getting next page URL from {current_page_url}: {e}")
-            return ""

@@ -1,9 +1,11 @@
+import logging
 import random
 import time
 from typing import Optional
 
 from requests.exceptions import RequestException
 
+logger = logging.getLogger(__name__)
 
 def exponential_backoff(
     max_retries: int = 3,
@@ -49,3 +51,39 @@ def handle_request_exception(
         return exponential_backoff(retry_count)
 
     return None
+
+def retry_with_backoff(action, max_retries: int, action_name: str, *args, **kwargs):
+    """
+    Retry an action with exponential backoff.
+
+    Args:
+        action: The function to execute with retries.
+        max_retries: Maximum number of retries.
+        action_name: Name of the action for logging purposes.
+        *args: Positional arguments to pass to the action.
+        **kwargs: Keyword arguments to pass to the action.
+
+    Returns:
+        The result of the action if successful.
+
+    Raises:
+        Exception: If the action fails after the maximum number of retries.
+    """
+    retry_count = 0
+
+    while retry_count <= max_retries:
+        try:
+            # Attempt to execute the action
+            return action(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"{action_name} attempt {retry_count + 1} failed: {e}")
+            delay = handle_request_exception(e, retry_count, max_retries)
+            if delay is None:
+                logger.error(f"Failed to complete {action_name} after {max_retries} retries.")
+                raise Exception(
+                    f"Failed to complete {action_name} after {max_retries} retries."
+                ) from e
+
+            retry_count += 1
+            logger.info(f"Retrying {action_name} in {delay} seconds (attempt {retry_count + 1})...")
+            time.sleep(delay)
