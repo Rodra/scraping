@@ -1,9 +1,12 @@
 import logging
+import time
 from typing import Any, Dict, List
 
 from bs4 import BeautifulSoup
+from requests.exceptions import RequestException
 
 from .auth import QuoteScraperAuth
+from .utils import handle_request_exception
 
 logger = logging.getLogger(__name__)
 
@@ -16,29 +19,36 @@ class QuoteParser:
 
     def fetch_page(self, url: str) -> BeautifulSoup:
         """
-        Fetch and parse the HTML content of a page.
+        Fetch the content of a page with retry logic.
 
         Args:
             url: The URL of the page to fetch.
 
         Returns:
-            BeautifulSoup object containing the parsed HTML content.
-
-        Raises:
-            Exception: If the request fails or the page cannot be fetched.
+            BeautifulSoup object containing the page content.
         """
-        try:
-            # Check if the session is authenticated
-            if not self.auth.is_authenticated():
-                raise Exception("Session is not authenticated. Please log in first.")
+        retry_count = 0
+        max_retries = 3
 
-            # Fetch the page content
-            response = self.auth.session.get(url)
-            response.raise_for_status()
-            return BeautifulSoup(response.text, "html.parser")
-        except Exception as e:
-            logger.error(f"Error fetching page {url}: {e}")
-            raise
+        while retry_count <= max_retries:
+            try:
+                # Check if the session is authenticated
+                if not self.auth.is_authenticated():
+                    raise Exception("Session is not authenticated. Please log in first.")
+
+                # Fetch the page content
+                response = self.auth.session.get(url)
+                response.raise_for_status()
+                return BeautifulSoup(response.text, "html.parser")
+
+            except RequestException as e:
+                # Handle the exception and determine if a retry is needed
+                delay = handle_request_exception(e, retry_count, max_retries)
+                if delay is None:
+                    raise Exception(f"Failed to fetch page {url} after {max_retries} retries.") from e
+
+                retry_count += 1
+                time.sleep(delay)
 
     def parse_quote(self, quote_element: BeautifulSoup) -> Dict[str, Any]:
         """
