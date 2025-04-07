@@ -4,7 +4,6 @@ from typing import Optional
 
 from bs4 import BeautifulSoup
 from requests import Session
-from requests.exceptions import RequestException
 
 from scraper.utils import handle_request_exception
 

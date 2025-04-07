@@ -34,7 +34,9 @@ class QuoteParser:
             try:
                 # Check if the session is authenticated
                 if not self.auth.is_authenticated():
-                    raise Exception("Session is not authenticated. Please log in first.")
+                    raise Exception(
+                        "Session is not authenticated. Please log in first."
+                    )
 
                 # Fetch the page content
                 response = self.auth.session.get(url)
@@ -45,7 +47,9 @@ class QuoteParser:
                 # Handle the exception and determine if a retry is needed
                 delay = handle_request_exception(e, retry_count, max_retries)
                 if delay is None:
-                    raise Exception(f"Failed to fetch page {url} after {max_retries} retries.") from e
+                    raise Exception(
+                        f"Failed to fetch page {url} after {max_retries} retries."
+                    ) from e
 
                 retry_count += 1
                 time.sleep(delay)

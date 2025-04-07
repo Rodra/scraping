@@ -21,7 +21,7 @@ def exponential_backoff(
     Returns:
         Calculated delay in seconds
     """
-    delay = min(base_delay * (2 ** max_retries), max_delay)
+    delay = min(base_delay * (2**max_retries), max_delay)
     jitter = random.uniform(0, delay * 0.1)
     return delay + jitter
 

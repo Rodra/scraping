@@ -62,7 +62,9 @@ class QuoteScraperJob:
         for quote_data in quotes:
             try:
                 # TODO: Save the quote_data to the database
-                logger.info(f"Saving quote: {quote_data['text']} by {quote_data['author']}")
+                logger.info(
+                    f"Saving quote: {quote_data['text']} by {quote_data['author']}"
+                )
 
             except Exception as e:
                 logger.error(f"Error saving quote: {quote_data}. Error: {e}")
