@@ -1,6 +1,10 @@
+import logging
 from typing import Optional
-import requests
+
+from bs4 import BeautifulSoup
 from requests import Session
+
+logger = logging.getLogger(__name__)
 
 
 class QuoteScraperAuth:
@@ -8,6 +12,7 @@ class QuoteScraperAuth:
 
     def __init__(self, base_url: str = "https://quotes.toscrape.com"):
         self.base_url = base_url
+        self.login_url = f"{self.base_url}/login"
         self.session = Session()
 
     def login(self, username: str, password: str) -> bool:
@@ -21,8 +26,34 @@ class QuoteScraperAuth:
         Returns:
             bool: True if login was successful, False otherwise
         """
-        # TODO: Implement login logic
-        pass
+        try:
+            # Fetch the login page to get the CSRF token
+            response = self.session.get(self.login_url)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, "html.parser")
+            csrf_token = soup.find("input", {"name": "csrf_token"})["value"]
+
+            # Prepare the login payload
+            payload = {
+                "csrf_token": csrf_token,
+                "username": username,
+                "password": password,
+            }
+
+            # Submit the login form
+            login_response = self.session.post(self.login_url, data=payload)
+            login_response.raise_for_status()
+
+            # Check if login was successful
+            if "Logout" in login_response.text:
+                logger.info("Login successful!")
+                return True
+            else:
+                logger.error("Login failed!")
+                return False
+        except Exception as e:
+            logger.error(f"Error during login: {e}")
+            return False
 
     def is_authenticated(self) -> bool:
         """
@@ -31,5 +62,10 @@ class QuoteScraperAuth:
         Returns:
             bool: True if authenticated, False otherwise
         """
-        # TODO: Implement authentication check
-        pass
+        try:
+            response = self.session.get(self.base_url)
+            response.raise_for_status()
+            return "Logout" in response.text
+        except Exception as e:
+            logger.error(f"Error checking authentication: {e}")
+            return False

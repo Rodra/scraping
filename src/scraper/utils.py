@@ -1,6 +1,7 @@
-import time
 import random
+import time
 from typing import Optional
+
 from requests.exceptions import RequestException
 
 
