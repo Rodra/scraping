@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from data.models import Quote
 from data.serializers import QuoteSerializer
-from scraper.tasks import scrape_quotes_task
+from scraper.tasks.scrape_quotes import scrape_quotes_task
 
 
 class ScrapeQuotesView(APIView):
@@ -33,7 +33,7 @@ class ScrapeQuotesView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Enqueue the Celery task
+        # Enqueue the scrape Celery task
         task = scrape_quotes_task.delay(username, password)
         return Response({"task_id": task.id}, status=status.HTTP_202_ACCEPTED)
 

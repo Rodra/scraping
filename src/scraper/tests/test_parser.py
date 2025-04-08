@@ -3,8 +3,8 @@ from unittest.mock import MagicMock, patch
 
 from bs4 import BeautifulSoup
 
-from scraper.auth import QuoteScraperAuth
-from scraper.parser import QuoteParser
+from scraper.auth.authentication import QuoteScraperAuth
+from scraper.parsers.quote_parser import QuoteParser
 
 
 class TestQuoteParser(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestQuoteParser(unittest.TestCase):
         self.mock_auth.base_url = "https://quotes.toscrape.com"
         self.parser = QuoteParser(auth=self.mock_auth)
 
-    @patch("scraper.parser.QuoteParser.fetch_page")
+    @patch("scraper.parsers.quote_parser.QuoteParser.fetch_page")
     def test_parse_page(self, mock_fetch_page):
         # Mock the page content
         html = '''
@@ -55,7 +55,7 @@ class TestQuoteParser(unittest.TestCase):
         # Assertions for next page URL
         self.assertEqual(next_page_url, "https://quotes.toscrape.com/page/2/")
 
-    @patch("scraper.parser.QuoteParser.fetch_page")
+    @patch("scraper.parsers.quote_parser.QuoteParser.fetch_page")
     def test_parse_page_no_next(self, mock_fetch_page):
         # Mock the page content without a "Next" button
         html = '''
@@ -83,7 +83,7 @@ class TestQuoteParser(unittest.TestCase):
         # Assertions for next page URL
         self.assertIsNone(next_page_url)
 
-    @patch("scraper.parser.QuoteParser.fetch_page")
+    @patch("scraper.parsers.quote_parser.QuoteParser.fetch_page")
     def test_parse_page_with_invalid_quotes(self, mock_fetch_page):
         # Mock the page content with an invalid quote
         html = '''

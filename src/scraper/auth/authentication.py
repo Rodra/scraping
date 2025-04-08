@@ -3,7 +3,7 @@ import logging
 from bs4 import BeautifulSoup
 from requests import Session
 
-from .utils import retry_with_backoff
+from scraper.utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 

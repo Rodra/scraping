@@ -1,11 +1,13 @@
-from django.test import TestCase
 from unittest.mock import patch
+
+from django.test import TestCase
+
 from data.models import Quote, Tag
-from scraper.tasks import scrape_quotes_task
+from scraper.tasks.scrape_quotes import scrape_quotes_task
 
 
 class ScrapeQuotesTaskTestCase(TestCase):
-    @patch("scraper.tasks.QuoteScraperJob")
+    @patch("scraper.tasks.scrape_quotes.QuoteScraperJob")
     def test_no_quotes_scraped(self, mock_scraper_job):
         """
         Test the task when no quotes are scraped.
@@ -17,7 +19,7 @@ class ScrapeQuotesTaskTestCase(TestCase):
 
         self.assertEqual(result, "No quotes found to scrape.")
 
-    @patch("scraper.tasks.QuoteScraperJob")
+    @patch("scraper.tasks.scrape_quotes.QuoteScraperJob")
     def test_quotes_with_new_tags(self, mock_scraper_job):
         """
         Test the task when quotes with new tags are scraped.
@@ -43,7 +45,7 @@ class ScrapeQuotesTaskTestCase(TestCase):
         self.assertEqual(Tag.objects.count(), 2)
         self.assertEqual(result, "Scraped 1 quotes successfully.")
 
-    @patch("scraper.tasks.QuoteScraperJob")
+    @patch("scraper.tasks.scrape_quotes.QuoteScraperJob")
     def test_quotes_with_existing_tags(self, mock_scraper_job):
         """
         Test the task when quotes with existing tags are scraped.
@@ -73,7 +75,7 @@ class ScrapeQuotesTaskTestCase(TestCase):
         self.assertEqual(Tag.objects.count(), 2)  # No new tags should be created
         self.assertEqual(result, "Scraped 1 quotes successfully.")
 
-    @patch("scraper.tasks.QuoteScraperJob")
+    @patch("scraper.tasks.scrape_quotes.QuoteScraperJob")
     def test_error_during_quote_saving(self, mock_scraper_job):
         """
         Test the task when an error occurs during quote saving.

@@ -1,8 +1,8 @@
 import logging
 from typing import List, Tuple
 
-from scraper.auth import QuoteScraperAuth
-from scraper.parser import QuoteParser
+from scraper.auth.authentication import QuoteScraperAuth
+from scraper.parsers.quote_parser import QuoteParser
 
 logger = logging.getLogger(__name__)
 

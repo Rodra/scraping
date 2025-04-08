@@ -3,9 +3,9 @@ import logging
 from celery import shared_task
 from rest_framework.exceptions import ValidationError
 
-from scraper.jobs.scrape_quotes import QuoteScraperJob
 from data.models import Tag
 from data.serializers import QuoteSerializer, TagSerializer
+from scraper.jobs.scrape_quotes import QuoteScraperJob
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,9 @@ def scrape_quotes_task(username: str, password: str):
             quote_data["tags"] = [tag.id for tag in tag_instances]
             quote_serializer.save()
 
+        # In real-world applications, we could handle this errors with a more complex
+        # retry logic or error handling mechanism just for quotes that we couldn't save.
+        # For now, we will just log the error and continue with the next quote.
         except ValidationError as e:
             logger.error(f"Validation error saving quote: {quote_data}. Error: {e}")
         except Exception as e:

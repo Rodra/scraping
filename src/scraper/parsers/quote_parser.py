@@ -3,8 +3,8 @@ from typing import Any, Dict, List, Tuple
 
 from bs4 import BeautifulSoup
 
-from .auth import QuoteScraperAuth
-from .utils import retry_with_backoff
+from scraper.auth.authentication import QuoteScraperAuth
+from scraper.utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 

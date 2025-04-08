@@ -15,14 +15,22 @@ This project is a web scraping application built with Django, Celery, and Redis.
 
 ## **Setup Instructions**
 
-### **1. Install Dependencies**
+### **1. Create and Activate a Virtual Environment**
+Use a virtual environment to isolate dependencies.
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### **2. Install Dependencies**
 Install the required Python packages:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### **2. Configure the Database
+### **3. Configure the Database**
 Run migrations to set up the database schema:
 
 ```bash
@@ -30,25 +38,25 @@ cd src
 python manage.py migrate
 ```
 
-### **3. Start Redis
+### **4. Start Redis**
 
 ```bash
 redis-server
 ```
 
-### **4. Start Celery
+### **5. Start Celery**
 
 ```bash
-celery -A scraper_project worker --loglevel=info
+celery -A scraping_project worker --loglevel=info
 ```
 
-### **5. Start the Django Development Server
+### **6. Start the Django Development Server**
 
 ```bash
 python manage.py runserver
 ```
 
-### **6. Create a superuser to test the scraping (remember username and password)
+### **7. Create a superuser to test the scraping (remember username and password)**
 ```bash
 python manage.py createsuperuser
 ```
@@ -165,46 +173,50 @@ With more time and resources, the following improvements could significantly enh
 
 #### Monitoring & Observability
 - Integrate a tool like Datadog or Prometheus to track:
-    - Task execution status and failure rates
-    - API response times and queue lengths
-    - Resource usage and performance trends
-- Add structured logging for easier debugging and root cause analysis
+    - Task execution status and failure rates.
+    - API response times and queue lengths.
+    - Resource usage and performance trends.
+- Add structured logging for easier debugging and root cause analysis.
 
 #### Production-Ready Database
 - Replace SQLite with PostgreSQL to support:
-    - Concurrent access
-    - Better data integrity
-    - Scalability and compatibility with cloud environments
+    - Concurrent access.
+    - Better data integrity.
+    - Scalability and compatibility with cloud environments.
 
 #### Scalable Task Design
 - Refactor Celery usage to:
-    - Create separate tasks per portal or scraping strategy
-    - Improve task isolation and parallelism
-    - Allow portal-specific retry and rate-limiting logic
+    - Create separate tasks per portal or scraping strategy.
+    - Improve task isolation and parallelism.
+    - Allow portal-specific retry and rate-limiting logic.
 
 #### Pluggable Architecture for Scrapers
 - Use a Strategy Pattern or similar abstraction to:
-    - Support multiple scraping approaches (HTML parsing, APIs, headless browsers, etc.)
-    - Onboard new portals with minimal code duplication
-    - Ensure code maintainability and testability
+    - Support multiple scraping approaches (HTML parsing, APIs, headless browsers, etc.).
+    - Onboard new portals with minimal code duplication.
+    - Ensure code maintainability and testability.
 
 #### Robust Error Handling
 - Improve handling of edge cases like:
-    - Structural changes in target websites (e.g., missing HTML elements)
-    - Intermittent HTTP errors (e.g., 429 Too Many Requests, 503 Service Unavailable)
-- Add:
-    - Fallback behavior or alerting for persistent failures
+    - Structural changes in target websites (e.g., missing HTML elements).
+    - Intermittent HTTP errors (e.g., 429 Too Many Requests, 503 Service Unavailable).
+- Add fallback behavior or alerting for persistent failures.
 
 #### Authentication & Security
-- Prepare for multi-user access with role-based access control (RBAC)
-- Secure sensitive configurations using environment variables or a secrets manager
+- Prepare for multi-user access with role-based access control (RBAC).
+- Secure sensitive configurations using environment variables or a secrets manager.
 
 #### Improved API Response Structure
 - Enhance how scraped data is returned from the backend:
-    - Format responses into paginated, structured JSON
-    - Allow filtering and sorting via query parameters
-    - Provide meaningful status codes and error messages for frontend or client integration
+    - Format responses into paginated, structured JSON.
+    - Allow filtering and sorting via query parameters.
+    - Provide meaningful status codes and error messages for frontend or client integration.
 
+### **Dockerization**
+- Dockerize the application to simplify deployment and ensure consistency across environments:
+    - Create a `Dockerfile` for the Django application.
+    - Use `docker-compose` to orchestrate services like Django, Redis, and Celery.
+    - Enable easy scaling of workers and services in production environments.
 
 ## **Why Django Was Chosen for the MVP**
 Django was a practical choice for this MVP due to its built-in support for features that aligned well with the project’s needs:
