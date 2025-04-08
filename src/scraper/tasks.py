@@ -28,6 +28,11 @@ def scrape_quotes_task(username: str, password: str):
         try:
             logger.info(f"Saving quote: {quote_data['text']} by {quote_data['author']}")
 
+            # Validate the quote data first
+            quote_serializer = QuoteSerializer(data=quote_data)
+            quote_serializer.is_valid(raise_exception=True)
+
+            #  Process tags only after the quote is validated
             tags_data = quote_data.pop("tags", [])
             tag_instances = []
             for tag_data in tags_data:
@@ -40,12 +45,8 @@ def scrape_quotes_task(username: str, password: str):
                 logger.info(f"Tag found: {tag_data['name']}")
                 tag_instances.append(tag)
 
-            # Add tag IDs to the quote data
+            # Add tag IDs to the quote data and save quote
             quote_data["tags"] = [tag.id for tag in tag_instances]
-
-            # Use the QuoteSerializer to validate and save the quote
-            quote_serializer = QuoteSerializer(data=quote_data)
-            quote_serializer.is_valid(raise_exception=True)
             quote_serializer.save()
 
         except ValidationError as e:
