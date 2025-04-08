@@ -25,7 +25,7 @@ class QuoteParser:
         Returns:
             BeautifulSoup object containing the page content.
         """
-        def perform_fetch():
+        def perform_fetch(url: str):
             # Check if the session is authenticated
             if not self.auth.is_authenticated():
                 raise Exception("Session is not authenticated. Please log in first.")
@@ -35,7 +35,12 @@ class QuoteParser:
             response.raise_for_status()
             return BeautifulSoup(response.text, "html.parser")
 
-        return retry_with_backoff(perform_fetch, max_retries=3, action_name="Fetch Page", url=url)
+        return retry_with_backoff(
+            perform_fetch,
+            max_retries=3,
+            action_name="Fetch Page",
+            url=url
+        )
 
     def get_quote_text(self, quote_element: BeautifulSoup) -> str:
         """
@@ -63,7 +68,20 @@ class QuoteParser:
         author_element = quote_element.find("small", class_="author")
         return author_element.get_text(strip=True) if author_element else ""
 
-    def get_quote_tags(self, quote_element: BeautifulSoup) -> List[str]:
+    def get_author_url(self, quote_element: BeautifulSoup) -> str:
+        """
+        Extract the URL of the author.
+
+        Args:
+            quote_element: BeautifulSoup element containing quote data.
+
+        Returns:
+            The URL of the author.
+        """
+        author_link = quote_element.find("small", class_="author").find_next("a")
+        return f"{self.auth.base_url}{author_link['href']}" if author_link else ""
+
+    def get_quote_tags(self, quote_element: BeautifulSoup) -> List[Dict[str, str]]:
         """
         Extract the tags associated with the quote.
 
@@ -71,30 +89,16 @@ class QuoteParser:
             quote_element: BeautifulSoup element containing quote data.
 
         Returns:
-            A list of tags.
+            A list of dictionaries, each containing the tag name and its URL.
         """
         tag_elements = quote_element.find_all("a", class_="tag")
-        return [tag.get_text(strip=True) for tag in tag_elements]
-
-    def get_author_url(self, quote_element: BeautifulSoup) -> str:
-        """
-        Extract the URL of the author's "about" page.
-
-        Args:
-            quote_element: BeautifulSoup element containing quote data.
-
-        Returns:
-            The URL of the author's "about" page.
-        """
-        author_element = quote_element.find("small", class_="author")
-        if not author_element:
-            return None
-
-        author_about_link = author_element.find_next_sibling("a", href=True)
-        if not author_about_link:
-            return None
-
-        return f"{self.auth.base_url}{author_about_link['href']}"
+        return [
+            {
+                "name": tag.get_text(strip=True),
+                "url": f"{self.auth.base_url}{tag['href']}"
+            }
+            for tag in tag_elements
+        ]
 
     def get_goodreads_link(self, quote_element: BeautifulSoup) -> str:
         """
@@ -182,4 +186,4 @@ class QuoteParser:
         except Exception as e:
             # Log the error and return an empty list
             logger.error(f"Error parsing page {page_url}: {e}")
-            return []
+            return [], None

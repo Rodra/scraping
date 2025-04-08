@@ -19,6 +19,11 @@ app.config_from_object('django.conf:settings', namespace='CELERY')
 # Automatically discover tasks in installed apps.
 app.autodiscover_tasks()
 
+# Celery configuration
+app.conf.update(
+    worker_log_level="INFO",  # Set log level to INFO
+)
+
 @app.task(bind=True)
 def debug_task(self):
     logger.info(f'Request: {self.request!r}')

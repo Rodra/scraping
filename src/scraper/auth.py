@@ -27,7 +27,7 @@ class QuoteScraperAuth:
         Returns:
             bool: True if login was successful, False otherwise.
         """
-        def perform_login():
+        def perform_login(username: str, password: str):
             # Fetch the login page to get the CSRF token
             response = self.session.get(self.login_url)
             response.raise_for_status()
@@ -53,7 +53,13 @@ class QuoteScraperAuth:
             logger.error("Login failed!")
             return False
 
-        return retry_with_backoff(perform_login, max_retries=3, action_name="Login")
+        return retry_with_backoff(
+            perform_login,
+            max_retries=3,
+            action_name="Login",
+            username=username,
+            password=password
+        )
 
     def is_authenticated(self) -> bool:
         """

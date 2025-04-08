@@ -3,8 +3,9 @@ import logging
 from celery import shared_task
 from rest_framework.exceptions import ValidationError
 
-from data.serializers import QuoteSerializer
 from scraper.jobs.scrape_quotes import QuoteScraperJob
+from data.models import Tag
+from data.serializers import QuoteSerializer, TagSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +28,26 @@ def scrape_quotes_task(username: str, password: str):
         try:
             logger.info(f"Saving quote: {quote_data['text']} by {quote_data['author']}")
 
+            tags_data = quote_data.pop("tags", [])
+            tag_instances = []
+            for tag_data in tags_data:
+                tag = Tag.objects.filter(name=tag_data["name"]).first()
+                if not tag:
+                    logger.info(f"Saving tag: {tag_data['name']}")
+                    tag_serializer = TagSerializer(data=tag_data)
+                    tag_serializer.is_valid(raise_exception=True)
+                    tag = tag_serializer.save()
+                logger.info(f"Tag found: {tag_data['name']}")
+                tag_instances.append(tag)
+
+            # Add tag IDs to the quote data
+            quote_data["tags"] = [tag.id for tag in tag_instances]
+
             # Use the QuoteSerializer to validate and save the quote
-            serializer = QuoteSerializer(data=quote_data)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            quote_serializer = QuoteSerializer(data=quote_data)
+            quote_serializer.is_valid(raise_exception=True)
+            quote_serializer.save()
+
         except ValidationError as e:
             logger.error(f"Validation error saving quote: {quote_data}. Error: {e}")
         except Exception as e:
