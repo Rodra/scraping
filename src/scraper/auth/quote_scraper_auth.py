@@ -3,15 +3,20 @@ import logging
 from bs4 import BeautifulSoup
 from requests import Session
 
+from scraper.auth.base_scraper_auth import BaseScraperAuth
 from scraper.utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
 
-class QuoteScraperAuth:
+class QuoteScraperAuth(BaseScraperAuth):
     """Handles authentication for the quotes.toscrape.com website."""
 
-    def __init__(self, base_url: str = "https://quotes.toscrape.com"):
+    # In real-world applications, this URL would be configurable by environment
+    # variables, configuration files, or cloud secrets.
+    PORTAL_URL = "https://quotes.toscrape.com"
+
+    def __init__(self, base_url: str = PORTAL_URL):
         self.base_url = base_url
         self.login_url = f"{self.base_url}/login"
         self.session = Session()

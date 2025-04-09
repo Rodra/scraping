@@ -3,13 +3,14 @@ from typing import Any, Dict, List, Tuple
 
 from bs4 import BeautifulSoup
 
-from scraper.auth.authentication import QuoteScraperAuth
+from scraper.auth.quote_scraper_auth import QuoteScraperAuth
+from scraper.parsers.base_parser import BaseParser
 from scraper.utils import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
 
-class QuoteParser:
+class QuoteParser(BaseParser):
     """Handles parsing of quote data from the website."""
 
     def __init__(self, auth: QuoteScraperAuth):
@@ -116,7 +117,7 @@ class QuoteParser:
 
         return author_link["href"]
 
-    def parse_quote(self, quote_element: BeautifulSoup) -> Dict[str, Any]:
+    def parse_item(self, quote_element: BeautifulSoup) -> Dict[str, Any]:
         """
         Parse a single quote element into a structured dictionary.
 
@@ -167,7 +168,7 @@ class QuoteParser:
             # Find all quote elements
             quote_elements = soup.find_all("div", class_="quote")
             quotes = [
-                self.parse_quote(quote_element) for quote_element in quote_elements
+                self.parse_item(quote_element) for quote_element in quote_elements
             ]
 
             # Filter out empty dictionaries (invalid quotes)

@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from bs4 import BeautifulSoup
 
-from scraper.auth.authentication import QuoteScraperAuth
+from scraper.auth.quote_scraper_auth import QuoteScraperAuth
 from scraper.parsers.quote_parser import QuoteParser
 
 

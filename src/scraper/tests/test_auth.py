@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from requests.exceptions import RequestException
 
-from scraper.auth.authentication import QuoteScraperAuth
+from scraper.auth.quote_scraper_auth import QuoteScraperAuth
 
 
 class TestQuoteScraperAuth(unittest.TestCase):
@@ -12,8 +12,8 @@ class TestQuoteScraperAuth(unittest.TestCase):
         self.username = "test_user"
         self.password = "test_password"
 
-    @patch("scraper.auth.authentication.Session.get")
-    @patch("scraper.auth.authentication.Session.post")
+    @patch("scraper.auth.quote_scraper_auth.Session.get")
+    @patch("scraper.auth.quote_scraper_auth.Session.post")
     def test_login_successful(self, mock_post, mock_get):
         # Mock the GET request to fetch the login page
         mock_get.return_value = MagicMock(
@@ -41,8 +41,8 @@ class TestQuoteScraperAuth(unittest.TestCase):
             },
         )
 
-    @patch("scraper.auth.authentication.Session.get")
-    @patch("scraper.auth.authentication.Session.post")
+    @patch("scraper.auth.quote_scraper_auth.Session.get")
+    @patch("scraper.auth.quote_scraper_auth.Session.post")
     def test_login_failed(self, mock_post, mock_get):
         # Mock the GET request to fetch the login page
         mock_get.return_value = MagicMock(
@@ -70,7 +70,7 @@ class TestQuoteScraperAuth(unittest.TestCase):
             },
         )
 
-    @patch("scraper.auth.authentication.Session.get")
+    @patch("scraper.auth.quote_scraper_auth.Session.get")
     def test_is_authenticated_true(self, mock_get):
         # Mock the GET request to check authentication
         mock_get.return_value = MagicMock(
@@ -84,7 +84,7 @@ class TestQuoteScraperAuth(unittest.TestCase):
         self.assertTrue(result)
         mock_get.assert_called_once_with(self.auth.base_url)
 
-    @patch("scraper.auth.authentication.Session.get")
+    @patch("scraper.auth.quote_scraper_auth.Session.get")
     def test_is_authenticated_false(self, mock_get):
         # Mock the GET request to check authentication
         mock_get.return_value = MagicMock(
@@ -98,7 +98,7 @@ class TestQuoteScraperAuth(unittest.TestCase):
         self.assertFalse(result)
         mock_get.assert_called_once_with(self.auth.base_url)
 
-    @patch("scraper.auth.authentication.Session.get")
+    @patch("scraper.auth.quote_scraper_auth.Session.get")
     def test_login_retry_on_failure(self, mock_get):
         # Mock the GET request to simulate a failure and then success
         mock_get.side_effect = [
@@ -109,7 +109,7 @@ class TestQuoteScraperAuth(unittest.TestCase):
             ),  # Second attempt succeeds
         ]
 
-        with patch("scraper.auth.authentication.Session.post") as mock_post:
+        with patch("scraper.auth.quote_scraper_auth.Session.post") as mock_post:
             mock_post.return_value = MagicMock(
                 status_code=200,
                 text="Logout"  # Simulate a successful login

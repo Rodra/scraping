@@ -45,9 +45,11 @@ def scrape_quotes_task(username: str, password: str):
                 logger.info(f"Tag found: {tag_data['name']}")
                 tag_instances.append(tag)
 
-            # Add tag IDs to the quote data and save quote
-            quote_data["tags"] = [tag.id for tag in tag_instances]
-            quote_serializer.save()
+            # Save the quote
+            quote = quote_serializer.save()
+
+            # Associate tags with the quote
+            quote.tags.set(tag_instances)
 
         # In real-world applications, we could handle this errors with a more complex
         # retry logic or error handling mechanism just for quotes that we couldn't save.
